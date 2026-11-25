@@ -1,0 +1,19 @@
+name: ios
+# Unsigned simulator build: proves the shell compiles. macOS minutes are free on a public repo.
+on: { push: { paths: ["ios/**", ".github/workflows/ios.yml"] }, workflow_dispatch: {} }
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: cd ios && xcodegen generate
+      - name: Build for simulator (unsigned)
+        run: |
+          set -o pipefail
+          cd ios && xcodebuild -project FrontRail.xcodeproj -scheme FrontRail \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -25
+      - run: cd ios/build/Build/Products/Debug-iphonesimulator && zip -qr "$GITHUB_WORKSPACE/FrontRail-simulator.zip" FrontRail.app
+      - uses: actions/upload-artifact@v4
+        with: { name: frontrail-ios-simulator, path: FrontRail-simulator.zip }
